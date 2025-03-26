@@ -7,10 +7,12 @@ import com.mktdev.tasklist.domain.entities.TaskStatus;
 import com.mktdev.tasklist.repositories.TaskListRepository;
 import com.mktdev.tasklist.repositories.TaskRepository;
 import com.mktdev.tasklist.services.TaskService;
+import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -57,5 +59,46 @@ public class TaskServiceImpl implements TaskService {
         );
 
         return taskRepository.save(taskToCreate);
+    }
+
+    @Override
+    public Optional<Task> getTask(UUID taskListId, UUID taskId) {
+        return taskRepository.findByTaskListIdAndId(taskListId, taskId);
+    }
+
+    @Transactional
+    @Override
+    public Task updateTask(UUID taskListId, UUID taskId, Task task) {
+        if (task.getId() == null) {
+            throw new IllegalArgumentException("Task does not have an ID!");
+        }
+        if (!Objects.equals(taskId, task.getId())) {
+            throw new IllegalArgumentException("Task ID does not match!");
+        }
+        if (task.getPriority() == null) {
+            throw new IllegalArgumentException("Task priority is null!");
+        }
+        if (task.getStatus() == null) {
+            throw new IllegalArgumentException("Task status is null!");
+        }
+        if (task.getDueDate() == null) {
+            throw new IllegalArgumentException("Task due date is null!");
+        }
+
+        Task taskToUpdate = taskRepository.findByTaskListIdAndId(taskListId, taskId).orElseThrow(() -> new IllegalArgumentException("Task does not exist!"));
+        taskToUpdate.setTitle(task.getTitle());
+        taskToUpdate.setDescription(task.getDescription());
+        taskToUpdate.setDueDate(task.getDueDate());
+        taskToUpdate.setStatus(task.getStatus());
+        taskToUpdate.setPriority(task.getPriority());
+        taskToUpdate.setUpdated(LocalDateTime.now());
+
+        return taskRepository.save(taskToUpdate);
+    }
+
+    @Transactional
+    @Override
+    public void deleteTask(UUID taskListId, UUID taskId) {
+        taskRepository.deleteByTaskListIdAndId(taskListId, taskId);
     }
 }
